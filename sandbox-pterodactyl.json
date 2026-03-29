@@ -107,16 +107,6 @@
             "user_editable": true,
             "rules": "nullable|string|max:64",
             "field_type": "text"
-        },
-        {
-            "name": "Steam Platform",
-            "description": "SteamCMD platform target. Keep as windows for Wine runtime.",
-            "env_variable": "STEAM_PLATFORM",
-            "default_value": "windows",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|in:windows",
-            "field_type": "text"
         }
     ]
 }

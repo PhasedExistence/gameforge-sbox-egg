@@ -5,11 +5,14 @@ EXPECTED_UID="${PUID:-999}"
 EXPECTED_GID="${PGID:-$(id -g)}"
 CONTAINER_HOME="${CONTAINER_HOME:-/home/container}"
 WINEPREFIX="${WINEPREFIX:-/home/container/.wine}"
+# Pre-baked Wine prefix inside the image; not subject to Pterodactyl's
+# /home/container volume mount, so it is always accessible at startup.
+BAKED_WINEPREFIX="${SBOX_BAKED_WINEPREFIX:-/opt/sbox-wine-prefix}"
 LOCK_DIR="${WINEPREFIX}/.init-lock"
 SBOX_INSTALL_DIR="${SBOX_INSTALL_DIR:-/home/container/sbox}"
 SBOX_SERVER_EXE="${SBOX_SERVER_EXE:-${SBOX_INSTALL_DIR}/sbox-server.exe}"
 SBOX_APP_ID="${SBOX_APP_ID:-1892930}"
-SBOX_AUTO_UPDATE="${SBOX_AUTO_UPDATE:-1}"
+SBOX_AUTO_UPDATE="${SBOX_AUTO_UPDATE:-0}"
 SBOX_BRANCH="${SBOX_BRANCH:-}"
 STEAM_PLATFORM="${STEAM_PLATFORM:-windows}"
 RESET_WINEPREFIX_ON_ARCH_MISMATCH="${RESET_WINEPREFIX_ON_ARCH_MISMATCH:-1}"
@@ -82,6 +85,17 @@ mkdir -p "${CONTAINER_HOME}" "${WINEPREFIX}" "${CONTAINER_HOME}/data" "${CONTAIN
 if [ ! -w "${CONTAINER_HOME}" ]; then
     echo "fatal: ${CONTAINER_HOME} is not writable by uid $(id -u)" >&2
     exit 1
+fi
+
+# On the first start with a fresh Pterodactyl volume, the Wings daemon
+# bind-mounts the server data directory over /home/container, hiding anything
+# that was baked into that path in the image layer.  The pre-baked Wine prefix
+# is stored at BAKED_WINEPREFIX (/opt/sbox-wine-prefix), which is outside the
+# volume mount and always accessible.  Copy it into WINEPREFIX once.
+if [ ! -f "${WINEPREFIX}/system.reg" ] && [ -d "${BAKED_WINEPREFIX}/drive_c" ]; then
+    echo "info: first run — copying baked Wine prefix from ${BAKED_WINEPREFIX} into ${WINEPREFIX}..." >&2
+    cp -a "${BAKED_WINEPREFIX}/." "${WINEPREFIX}/"
+    echo "info: Wine prefix ready." >&2
 fi
 
 ensure_wineprefix_arch
@@ -205,7 +219,7 @@ run_sbox() {
         args+=( "${extra[@]}" )
     fi
 
-    # Force .NET host discovery to use Windows runtime inside Wine prefix.
+    # Strip Linux .NET env vars so Wine uses the Windows runtime inside the prefix.
     unset DOTNET_ROOT DOTNET_ROOT_X86
 
     cd "${SBOX_INSTALL_DIR}"
