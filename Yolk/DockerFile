@@ -10,8 +10,8 @@ LABEL org.opencontainers.image.authors="Steven A. Smith" \
           org.opencontainers.image.licenses="MIT" \
           org.opencontainers.image.source="https://github.com/HyberHost/GameForge-sbox-egg"
 
-ARG PUID=999
-ARG PGID=999
+ARG PUID=998
+ARG PGID=998
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV CONTAINER_HOME=/home/container \
@@ -106,7 +106,7 @@ COPY --chown=999:999 Yolk/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 0755 /usr/local/bin/entrypoint.sh
 
 WORKDIR /home/container
-USER 999:999
+USER 998:998
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 CMD ["start-sbox"]

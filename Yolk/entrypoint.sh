@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-EXPECTED_UID="${PUID:-999}"
+EXPECTED_UID="${PUID:-998}"
 EXPECTED_GID="${PGID:-$(id -g)}"
 CONTAINER_HOME="${CONTAINER_HOME:-/home/container}"
 WINEPREFIX="${WINEPREFIX:-/home/container/.wine}"
