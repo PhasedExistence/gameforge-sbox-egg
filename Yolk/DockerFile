@@ -21,7 +21,6 @@ ENV CONTAINER_HOME=/home/container \
         WINEPREFIX=/home/container/.wine \
         WINEARCH=win64 \
         WINEDEBUG=-all \
-        WINEDLLOVERRIDES=icu,icuuc=d \
         DOTNET_ROOT=/usr/share/dotnet \
         SBOX_APP_ID=1892930 \
         SBOX_INSTALL_DIR=/home/container/sbox \

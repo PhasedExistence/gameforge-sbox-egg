@@ -2,7 +2,7 @@
 set -euo pipefail
 
 EXPECTED_UID="${PUID:-999}"
-EXPECTED_GID="${PGID:-999}"
+EXPECTED_GID="${PGID:-$(id -g)}"
 CONTAINER_HOME="${CONTAINER_HOME:-/home/container}"
 WINEPREFIX="${WINEPREFIX:-/home/container/.wine}"
 LOCK_DIR="${WINEPREFIX}/.init-lock"
