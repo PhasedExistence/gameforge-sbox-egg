@@ -211,12 +211,14 @@ run_sbox() {
 
 ensure_windows_dotnet_runtime() {
     local win_dotnet_dir="${WINEPREFIX}/drive_c/Program Files/dotnet"
-    local win_hostfxr_glob="${win_dotnet_dir}/host/fxr/*/hostfxr.dll"
+    local hostfxr_path=""
+    local nested_root=""
     local runtime_zip="${CONTAINER_HOME}/.cache/dotnet-runtime-${WIN_DOTNET_VERSION}-win-x64.zip"
     local url_primary="https://dotnetcli.azureedge.net/dotnet/Runtime/${WIN_DOTNET_VERSION}/dotnet-runtime-${WIN_DOTNET_VERSION}-win-x64.zip"
     local url_fallback="https://builds.dotnet.microsoft.com/dotnet/Runtime/${WIN_DOTNET_VERSION}/dotnet-runtime-${WIN_DOTNET_VERSION}-win-x64.zip"
 
-    if ls ${win_hostfxr_glob} >/dev/null 2>&1; then
+    hostfxr_path="$(find "${win_dotnet_dir}" -type f -name hostfxr.dll 2>/dev/null | head -n 1 || true)"
+    if [ -n "${hostfxr_path}" ]; then
         return 0
     fi
 
@@ -238,10 +240,20 @@ ensure_windows_dotnet_runtime() {
         return 1
     fi
 
-    if ! ls ${win_hostfxr_glob} >/dev/null 2>&1; then
+    # Some archives may extract into a versioned top-level folder.
+    if [ ! -d "${win_dotnet_dir}/host" ] && [ -d "${win_dotnet_dir}/dotnet-runtime-${WIN_DOTNET_VERSION}-win-x64" ]; then
+        nested_root="${win_dotnet_dir}/dotnet-runtime-${WIN_DOTNET_VERSION}-win-x64"
+        find "${nested_root}" -mindepth 1 -maxdepth 1 -exec mv -f {} "${win_dotnet_dir}/" \;
+        rmdir "${nested_root}" 2>/dev/null || true
+    fi
+
+    hostfxr_path="$(find "${win_dotnet_dir}" -type f -name hostfxr.dll 2>/dev/null | head -n 1 || true)"
+    if [ -z "${hostfxr_path}" ]; then
         echo "fatal: Windows .NET runtime extracted but hostfxr.dll still missing" >&2
         return 1
     fi
+
+    echo "info: detected hostfxr at ${hostfxr_path}" >&2
 }
 
 if [ ! -f "${WINEPREFIX}/system.reg" ]; then
