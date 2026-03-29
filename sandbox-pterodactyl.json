@@ -7,7 +7,7 @@
     "exported_at": "2026-03-29T13:07:16+01:00",
     "name": "S&box Server (Wine)",
     "author": "support@gameforge.gg",
-    "description": "S&Box dedicated server via Wine with SteamCMD auto-update, Windows depot targeting, and non-root runtime for Pterodactyl.",
+    "description": "S&Box dedicated server via Wine with build-time baked Wine prefix and Windows .NET runtime for stable Pterodactyl startup.",
     "features": [],
     "docker_images": {
         "hyberhost\/gameforge-sbox-egg:latest": "hyberhost\/gameforge-sbox-egg:latest"
@@ -116,6 +116,36 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|in:windows",
+            "field_type": "text"
+        },
+        {
+            "name": "Dotnet Multilevel Lookup",
+            "description": "Set to 0 to force Wine process to use in-prefix Windows dotnet runtime.",
+            "env_variable": "DOTNET_MULTILEVEL_LOOKUP",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Runtime Winetricks Fallback",
+            "description": "Normally 0 when prefix is baked at build time. Set 1 to run winetricks verbs at container startup.",
+            "env_variable": "INSTALL_WINETRICKS_DOTNET",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Runtime Dotnet Installer Fallback",
+            "description": "Normally 0 when prefix is baked at build time. Set 1 to install Windows dotnet runtime at startup.",
+            "env_variable": "INSTALL_WIN_DOTNET",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|in:0,1",
             "field_type": "text"
         }
     ]

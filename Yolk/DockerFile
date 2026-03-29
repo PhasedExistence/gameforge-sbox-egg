@@ -10,9 +10,13 @@ LABEL org.opencontainers.image.authors="Steven A. Smith" \
           org.opencontainers.image.licenses="MIT" \
           org.opencontainers.image.source="https://github.com/HyberHost/GameForge-sbox-egg"
 
-ARG PUID=998
-ARG PGID=998
+ARG PUID=999
+ARG PGID=999
 ARG DEBIAN_FRONTEND=noninteractive
+ARG BAKE_WINEPREFIX=1
+ARG BAKE_WINETRICKS_VERBS="dotnet48 dotnet10"
+ARG BAKE_WINETRICKS_STRICT=0
+ARG BAKE_WIN_DOTNET_VERSION=10.0.2
 
 ENV CONTAINER_HOME=/home/container \
         HOME=/home/container \
@@ -28,12 +32,13 @@ ENV CONTAINER_HOME=/home/container \
         SBOX_AUTO_UPDATE=1 \
         SBOX_BRANCH= \
         STEAM_PLATFORM=windows \
-        INSTALL_WINETRICKS_DOTNET=1 \
+        INSTALL_WINETRICKS_DOTNET=0 \
         WINETRICKS_VERBS=dotnet48\ dotnet10 \
         WINETRICKS_STRICT=0 \
-        INSTALL_WIN_DOTNET=1 \
+        INSTALL_WIN_DOTNET=0 \
         WIN_DOTNET_VERSION=10.0.2 \
         WIN_DOTNET_INSTALL_METHOD=installer \
+        DOTNET_MULTILEVEL_LOOKUP=0 \
         GAME= \
         MAP= \
         HOSTNAME= \
@@ -102,11 +107,17 @@ RUN if ! getent group "${PGID}" >/dev/null; then groupadd --gid "${PGID}" contai
         && chown -R "${PUID}:${PGID}" /home/container \
         && chmod 1777 /tmp
 
+COPY Yolk/bake_wineprefix.sh /usr/local/bin/bake_wineprefix.sh
+RUN chmod 0755 /usr/local/bin/bake_wineprefix.sh \
+        && if [ "${BAKE_WINEPREFIX}" = "1" ]; then \
+                su -s /bin/bash container -c "BAKE_WINETRICKS_VERBS='${BAKE_WINETRICKS_VERBS}' BAKE_WINETRICKS_STRICT='${BAKE_WINETRICKS_STRICT}' BAKE_WIN_DOTNET_VERSION='${BAKE_WIN_DOTNET_VERSION}' /usr/local/bin/bake_wineprefix.sh"; \
+        fi
+
 COPY --chown=999:999 Yolk/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 0755 /usr/local/bin/entrypoint.sh
 
 WORKDIR /home/container
-USER 998:998
+USER 999:999
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 CMD ["start-sbox"]

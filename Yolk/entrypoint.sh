@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-EXPECTED_UID="${PUID:-998}"
+EXPECTED_UID="${PUID:-999}"
 EXPECTED_GID="${PGID:-$(id -g)}"
 CONTAINER_HOME="${CONTAINER_HOME:-/home/container}"
 WINEPREFIX="${WINEPREFIX:-/home/container/.wine}"
@@ -13,12 +13,14 @@ SBOX_AUTO_UPDATE="${SBOX_AUTO_UPDATE:-1}"
 SBOX_BRANCH="${SBOX_BRANCH:-}"
 STEAM_PLATFORM="${STEAM_PLATFORM:-windows}"
 RESET_WINEPREFIX_ON_ARCH_MISMATCH="${RESET_WINEPREFIX_ON_ARCH_MISMATCH:-1}"
-INSTALL_WINETRICKS_DOTNET="${INSTALL_WINETRICKS_DOTNET:-1}"
+INSTALL_WINETRICKS_DOTNET="${INSTALL_WINETRICKS_DOTNET:-0}"
 WINETRICKS_VERBS="${WINETRICKS_VERBS:-dotnet48 dotnet10}"
 WINETRICKS_STRICT="${WINETRICKS_STRICT:-0}"
-INSTALL_WIN_DOTNET="${INSTALL_WIN_DOTNET:-1}"
+INSTALL_WIN_DOTNET="${INSTALL_WIN_DOTNET:-0}"
 WIN_DOTNET_VERSION="${WIN_DOTNET_VERSION:-10.0.2}"
 WIN_DOTNET_INSTALL_METHOD="${WIN_DOTNET_INSTALL_METHOD:-installer}"
+WIN_DOTNET_ROOT="${WIN_DOTNET_ROOT:-C:\\Program Files\\dotnet}"
+DOTNET_MULTILEVEL_LOOKUP="${DOTNET_MULTILEVEL_LOOKUP:-0}"
 GAME="${GAME:-}"
 MAP="${MAP:-}"
 SERVER_NAME="${HOSTNAME:-}"
@@ -203,14 +205,14 @@ run_sbox() {
         args+=( "${extra[@]}" )
     fi
 
-    # Prevent Wine-launched Windows processes from using Linux .NET paths.
-    unset DOTNET_ROOT DOTNET_ROOT_X64 DOTNET_ROOT_X86 DOTNET_MULTILEVEL_LOOKUP
+    # Force .NET host discovery to use Windows runtime inside Wine prefix.
+    unset DOTNET_ROOT DOTNET_ROOT_X86
 
     cd "${SBOX_INSTALL_DIR}"
     if command -v xvfb-run >/dev/null 2>&1; then
-        exec xvfb-run -a wine "${SBOX_SERVER_EXE}" "${args[@]}"
+        exec env DOTNET_ROOT="${WIN_DOTNET_ROOT}" DOTNET_ROOT_X64="${WIN_DOTNET_ROOT}" DOTNET_MULTILEVEL_LOOKUP="${DOTNET_MULTILEVEL_LOOKUP}" xvfb-run -a wine "${SBOX_SERVER_EXE}" "${args[@]}"
     fi
-    exec wine "${SBOX_SERVER_EXE}" "${args[@]}"
+    exec env DOTNET_ROOT="${WIN_DOTNET_ROOT}" DOTNET_ROOT_X64="${WIN_DOTNET_ROOT}" DOTNET_MULTILEVEL_LOOKUP="${DOTNET_MULTILEVEL_LOOKUP}" wine "${SBOX_SERVER_EXE}" "${args[@]}"
 }
 
 ensure_windows_dotnet_runtime() {
