@@ -35,6 +35,7 @@ SBOX_USE_XVFB="${SBOX_USE_XVFB:-0}"
 SBOX_DEBUG_LOGGING="${SBOX_DEBUG_LOGGING:-0}"
 SBOX_TRACE_STRACE="${SBOX_TRACE_STRACE:-0}"
 SBOX_PURGE_CACHE="${SBOX_PURGE_CACHE:-1}"
+SBOX_CLR_COMPAT_MODE="${SBOX_CLR_COMPAT_MODE:-0}"
 
 detect_prefix_arch() {
     if [ ! -f "${WINEPREFIX}/system.reg" ]; then
@@ -449,6 +450,7 @@ run_sbox() {
         echo "SBOX_DEBUG_LOGGING: ${SBOX_DEBUG_LOGGING}"
         echo "SBOX_TRACE_STRACE: ${SBOX_TRACE_STRACE}"
         echo "SBOX_PURGE_CACHE: ${SBOX_PURGE_CACHE}"
+        echo "SBOX_CLR_COMPAT_MODE: ${SBOX_CLR_COMPAT_MODE}"
         echo "Game: ${GAME:-none}"
         echo "Map: ${MAP:-none}"
         echo "Server Name: ${SERVER_NAME:-none}"
@@ -466,6 +468,16 @@ run_sbox() {
         WINE_CPU_TOPOLOGY=2:2
         WINEDLLOVERRIDES="${WINEDLLOVERRIDES:-icu,icuuc=d}"
     )
+
+    if [ "${SBOX_CLR_COMPAT_MODE}" = "1" ]; then
+        echo "info: enabling CLR compatibility launch flags (SBOX_CLR_COMPAT_MODE=1)" >&2
+        launch_env+=(
+            DOTNET_EnableWriteXorExecute=0
+            COMPlus_TieredCompilation=0
+            COMPlus_ReadyToRun=0
+            COMPlus_ZapDisable=1
+        )
+    fi
 
     if [ "${SBOX_DEBUG_LOGGING}" = "1" ]; then
         echo "info: debug snapshot: routes" >&2
