@@ -56,14 +56,44 @@ seed_runtime_files() {
 }
 
 steamcmd_installed() {
-    [ -x "${STEAMCMD_DIR}/linux32/steamcmd" ] && [ -f "${STEAMCMD_DIR}/steamcmd.sh" ]
+    local steamcmd_bin=""
+
+    steamcmd_bin="$(resolve_steamcmd_binary)"
+    if [ -z "${steamcmd_bin}" ]; then
+        return 1
+    fi
+
+    if [ ! -x "${steamcmd_bin}" ]; then
+        chmod 0755 "${steamcmd_bin}" 2>/dev/null || true
+    fi
+
+    [ -x "${steamcmd_bin}" ]
+}
+
+resolve_steamcmd_binary() {
+    local candidate=""
+
+    for candidate in \
+        "${STEAMCMD_DIR}/linux32/steamcmd" \
+        "${CONTAINER_HOME}/Steam/linux32/steamcmd"
+    do
+        if [ -f "${candidate}" ]; then
+            printf '%s' "${candidate}"
+            return 0
+        fi
+    done
+
+    return 1
 }
 
 run_steamcmd() {
     local -a args=("$@")
+    local steamcmd_bin=""
+
+    steamcmd_bin="$(resolve_steamcmd_binary || true)"
 
     if ! steamcmd_installed; then
-        echo "warn: SteamCMD is not installed in ${STEAMCMD_DIR}; run the egg installation script first" >&2
+        echo "warn: SteamCMD runtime binary was not found (checked ${STEAMCMD_DIR}/linux32/steamcmd and ${CONTAINER_HOME}/Steam/linux32/steamcmd)" >&2
         return 1
     fi
 
@@ -74,13 +104,12 @@ run_steamcmd() {
 
     "${STEAM_COMPAT_LOADER}" \
         --library-path "${STEAM_COMPAT_LIB_PATH}" \
-        "${STEAMCMD_DIR}/linux32/steamcmd" \
+        "${steamcmd_bin}" \
         "${args[@]}"
 }
 
 update_sbox() {
     local -a steam_args
-    local -a fallback_args
 
     steam_args=(
         +@ShutdownOnFailedCommand 1
@@ -98,27 +127,18 @@ update_sbox() {
     steam_args+=( validate +quit )
 
     if ! run_steamcmd +quit >/dev/null 2>&1; then
-        echo "warn: SteamCMD runtime probe failed for '${STEAMCMD_DIR}/linux32/steamcmd'; skipping auto-update" >&2
+        echo "warn: SteamCMD runtime probe failed; skipping auto-update" >&2
         return 0
     fi
 
     echo "info: running SteamCMD app_update for app ${SBOX_APP_ID}" >&2
     if ! run_steamcmd "${steam_args[@]}"; then
-        echo "warn: SteamCMD update failed with platform '${STEAM_PLATFORM}', retrying without platform override" >&2
-        fallback_args=(
-            +@ShutdownOnFailedCommand 1
-            +@NoPromptForPassword 1
-            +force_install_dir "${SBOX_INSTALL_DIR}"
-            +login anonymous
-            +app_update "${SBOX_APP_ID}"
-        )
+        echo "warn: SteamCMD update failed with platform '${STEAM_PLATFORM}'; refusing Linux fallback to preserve Wine-compatible server files" >&2
+        return 1
+    fi
 
-        if [ -n "${SBOX_BRANCH}" ]; then
-            fallback_args+=( -beta "${SBOX_BRANCH}" )
-        fi
-
-        fallback_args+=( validate +quit )
-        run_steamcmd "${fallback_args[@]}"
+    if [ ! -f "${SBOX_SERVER_EXE}" ] && [ -d "${SBOX_INSTALL_DIR}/linux64" ]; then
+        echo "warn: update finished but Windows server executable is still missing while linux64 content exists in ${SBOX_INSTALL_DIR}" >&2
     fi
 }
 

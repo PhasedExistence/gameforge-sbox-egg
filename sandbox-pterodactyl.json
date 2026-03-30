@@ -6,7 +6,7 @@
     },
     "name": "Sandbox (S&Box) Server",
     "author": "team@gameforge.gg",
-    "description": "S&Box dedicated server using a custom runtime image with baked Wine + Windows .NET, while SteamCMD and server files are installed by the egg installer.",
+    "description": "S&Box dedicated server using a custom runtime image with baked Wine + Windows .NET, while SteamCMD is installed by the egg installer and server files are managed at runtime.",
     "features": [],
     "docker_images": {
         "ghcr.io\/hyberhost\/gameforge-sbox-egg:latest": "ghcr.io\/hyberhost\/gameforge-sbox-egg:latest"
@@ -21,7 +21,7 @@
     },
     "scripts": {
         "installation": {
-            "script": "#!/bin/bash\nset -euo pipefail\n\nif [[ -z \"${STEAM_USER:-}\" ]] || [[ -z \"${STEAM_PASS:-}\" ]]; then\n    echo -e \"steam user is not set.\\n\"\n    echo -e \"Using anonymous user.\\n\"\n    STEAM_USER=anonymous\n    STEAM_PASS=\"\"\n    STEAM_AUTH=\"\"\nelse\n    echo -e \"user set to ${STEAM_USER}\"\nfi\n\nmkdir -p /mnt/server /mnt/server/sbox /mnt/server/steamcmd /mnt/server/steamapps\ncd /tmp\nrm -f steamcmd.tar.gz\ncurl -sSL -o steamcmd.tar.gz https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz\ntar -xzvf steamcmd.tar.gz -C /mnt/server/steamcmd --no-same-owner\ncd /mnt/server/steamcmd\nchown -R root:root /mnt || true\nexport HOME=/mnt/server\n\n./steamcmd.sh +force_install_dir /mnt/server/sbox +login ${STEAM_USER} ${STEAM_PASS} ${STEAM_AUTH} +@sSteamCmdForcePlatformType windows +app_update 1892930 $( [[ -n \"${SBOX_BRANCH:-}\" ]] && printf %s \"-beta ${SBOX_BRANCH}\" ) validate +quit\n\nmkdir -p /mnt/server/.steam/sdk32\ncp -v linux32/steamclient.so /mnt/server/.steam/sdk32/steamclient.so\nmkdir -p /mnt/server/.steam/sdk64\ncp -v linux64/steamclient.so /mnt/server/.steam/sdk64/steamclient.so\n\necho \"-----------------------------------------\"\necho \"Installation completed...\"\necho \"-----------------------------------------\"\n",
+            "script": "#!/bin/bash\nset -euo pipefail\n\nmkdir -p /mnt/server /mnt/server/steamcmd /mnt/server/steamapps\ncd /tmp\nrm -f steamcmd.tar.gz\ncurl -sSL -o steamcmd.tar.gz https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz\ntar -xzvf steamcmd.tar.gz -C /mnt/server/steamcmd --no-same-owner\ncd /mnt/server/steamcmd\nchown -R root:root /mnt || true\nexport HOME=/mnt/server\n\n./steamcmd.sh +quit\n\nmkdir -p /mnt/server/.steam/sdk32\ncp -v linux32/steamclient.so /mnt/server/.steam/sdk32/steamclient.so\nmkdir -p /mnt/server/.steam/sdk64\ncp -v linux64/steamclient.so /mnt/server/.steam/sdk64/steamclient.so\n\necho \"-----------------------------------------\"\necho \"SteamCMD installation completed...\"\necho \"-----------------------------------------\"\n",
             "container": "ghcr.io/ptero-eggs/installers:debian",
             "entrypoint": "bash"
         }
