@@ -29,7 +29,7 @@
     "variables": [
         {
             "name": "Game",
-            "description": "Game to load",
+            "description": "Primary game package passed to +game (for example: facepunch.walker).",
             "env_variable": "GAME",
             "default_value": "facepunch.walker",
             "user_viewable": true,
@@ -39,17 +39,17 @@
         },
         {
             "name": "Server Name",
-            "description": "Server display name (shown in browser)",
+            "description": "Public server name shown in the S&Box server browser and listings.",
             "env_variable": "SERVER_NAME",
-            "default_value": "GameForge Sandbox Server",
+            "default_value": "Pterodactyl Sandbox Server",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|max:128",
+            "rules": "nullable|string|max:128",
             "field_type": "text"
         },
         {
             "name": "Map",
-            "description": "Optional map package identifier passed after +game",
+            "description": "Optional map/package identifier loaded after +game. Leave blank to use the game default (for example: facepunch.flatgrass).",
             "env_variable": "MAP",
             "default_value": "",
             "user_viewable": true,
@@ -58,18 +58,8 @@
             "field_type": "text"
         },
         {
-            "name": "Game Server Token",
-            "description": "Optional +net_game_server_token value",
-            "env_variable": "TOKEN",
-            "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "nullable|string|max:255",
-            "field_type": "text"
-        },
-        {
             "name": "Local Project (.sbproj)",
-            "description": "Optional .sbproj target for +game. Project files must be inside /home/container/projects/; pass only folder/file (for example: richman/richman.sbproj).",
+            "description": "Optional local .sbproj target for +game. File must exist under /home/container/projects/; enter only relative folder/file (for example: richman/richman.sbproj).",
             "env_variable": "SBOX_PROJECT",
             "default_value": "",
             "user_viewable": true,
@@ -79,7 +69,7 @@
         },
         {
             "name": "Extra Args",
-            "description": "Optional extra command line arguments appended to sbox-server.exe",
+            "description": "Optional extra launch arguments appended to sbox-server.exe, some gamemodes may require additional arguments to function properly. Use with caution.",
             "env_variable": "SBOX_EXTRA_ARGS",
             "default_value": "",
             "user_viewable": true,
@@ -89,7 +79,7 @@
         },
         {
             "name": "Auto Update",
-            "description": "Set to 1 to run SteamCMD app_update on startup, 0 to skip",
+            "description": "Automatic Server Updates. This is currently not working in runtime so image rebuild is currently required.",
             "env_variable": "SBOX_AUTO_UPDATE",
             "default_value": "1",
             "user_viewable": true,
@@ -98,18 +88,28 @@
             "field_type": "text"
         },
         {
+            "name": "Game Server Token",
+            "description": "Optional Steam game server token passed as +net_game_server_token.",
+            "env_variable": "TOKEN",
+            "default_value": "",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": "nullable|string|max:255",
+            "field_type": "text"
+        },
+        {
             "name": "Branch",
-            "description": "Optional Steam beta branch (for example: staging)",
+            "description": "Optional Steam beta branch name used for updates (for example: staging).",
             "env_variable": "SBOX_BRANCH",
             "default_value": "",
-            "user_viewable": true,
-            "user_editable": true,
+            "user_viewable": false,
+            "user_editable": false,
             "rules": "nullable|string|max:64",
             "field_type": "text"
         },
         {
             "name": "Windows .NET Version",
-            "description": "Windows .NET runtime version baked into the runtime image",
+            "description": "Informational only: Windows .NET runtime version baked into the container image.",
             "env_variable": "WIN_DOTNET_VERSION",
             "default_value": "10.0.0",
             "user_viewable": false,
