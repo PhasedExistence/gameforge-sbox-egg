@@ -7,7 +7,7 @@
     "exported_at": "2026-04-09T00:00:00+00:00",
     "name": "s&box Game Server",
     "author": "lucky@svn.gg",
-    "uuid": "00000000-0000-0000-0000-000000000000",
+    "uuid": "dac2aaa2-4ef2-4220-a0cf-a968e61919f7",
     "description": "s&box dedicated server using a custom runtime image with baked Wine + Windows .NET, while SteamCMD is installed by the egg installer and server files are managed at runtime.",
     "features": [],
     "docker_images": {
