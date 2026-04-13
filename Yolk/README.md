@@ -97,3 +97,15 @@ bash -n Yolk/entrypoint.sh
 # Smoke test against a fresh volume
 docker run --rm -it -v sbox-test:/home/container ghcr.io/hyberhost/gameforge-sbox-egg:latest start-sbox
 ```
+
+
+## Linux-native experimental build
+
+Build the native-linux variant:
+
+```bash
+docker build --platform linux/amd64 -f Yolk/Dockerfile.linux-native -t ghcr.io/hyberhost/gameforge-sbox-egg:linux-native .
+```
+
+Use `sandbox-pterodactyl-linux-native.json` with this image tag. The container updates with SteamCMD platform `linux` and executes `sbox-server` directly (no Wine), using an Alpine SteamCMD base image.
+
