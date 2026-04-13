@@ -20,6 +20,7 @@ STEAMCMD_DIR="${STEAMCMD_DIR:-${CONTAINER_HOME}/steamcmd}"
 GAME="${GAME:-}"
 MAP="${MAP:-}"
 SERVER_NAME="${SERVER_NAME:-}"
+HOSTNAME_FALLBACK="${HOSTNAME:-}"
 QUERY_PORT="${QUERY_PORT:-}"
 MAX_PLAYERS="${MAX_PLAYERS:-}"
 ENABLE_DIRECT_CONNECT="${ENABLE_DIRECT_CONNECT:-0}"
@@ -235,6 +236,9 @@ resolve_steamcmd_binary() {
     local candidate=""
 
     for candidate in \
+        "/usr/bin/steamcmd" \
+        "/usr/games/steamcmd" \
+        "${STEAMCMD_DIR}/steamcmd.sh" \
         "${STEAMCMD_DIR}/linux32/steamcmd" \
         "${CONTAINER_HOME}/Steam/linux32/steamcmd"
     do
@@ -247,24 +251,73 @@ resolve_steamcmd_binary() {
     return 1
 }
 
+bootstrap_steamcmd() {
+    local archive_path="${STEAMCMD_DIR}/steamcmd_linux.tar.gz"
+
+    mkdir -p "${STEAMCMD_DIR}"
+
+    if [ -f "${STEAMCMD_DIR}/steamcmd.sh" ] || [ -f "${STEAMCMD_DIR}/linux32/steamcmd" ]; then
+        return 0
+    fi
+
+    log_info "SteamCMD missing; bootstrapping into ${STEAMCMD_DIR}"
+    if ! wget -qO "${archive_path}" "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz"; then
+        log_warn "failed to download SteamCMD bootstrap archive"
+        return 1
+    fi
+
+    if ! tar -xzf "${archive_path}" -C "${STEAMCMD_DIR}"; then
+        log_warn "failed to extract SteamCMD bootstrap archive"
+        rm -f "${archive_path}"
+        return 1
+    fi
+
+    rm -f "${archive_path}"
+    chmod 0755 "${STEAMCMD_DIR}/steamcmd.sh" "${STEAMCMD_DIR}/linux32/steamcmd" 2>/dev/null || true
+    return 0
+}
+
 run_steamcmd() {
     local -a args=("$@")
     local steamcmd_bin=""
     local steamcmd_root=""
+    local steamcmd_base=""
 
     steamcmd_bin="$(resolve_steamcmd_binary || true)"
 
     if [ -z "${steamcmd_bin}" ]; then
-        log_warn "SteamCMD binary not found in expected locations"
-        return 1
+        if ! bootstrap_steamcmd; then
+            log_warn "SteamCMD binary not found in expected locations"
+            return 1
+        fi
+        steamcmd_bin="$(resolve_steamcmd_binary || true)"
+        if [ -z "${steamcmd_bin}" ]; then
+            log_warn "SteamCMD bootstrap completed but no binary was found"
+            return 1
+        fi
     fi
 
-    if [ ! -x "${STEAM_COMPAT_LOADER}" ]; then
-        log_warn "Steam compatibility loader missing at ${STEAM_COMPAT_LOADER}"
-        return 1
+    steamcmd_base="$(basename "${steamcmd_bin}")"
+
+    # Use native/system wrappers directly when available.
+    if [ "${steamcmd_bin}" = "/usr/bin/steamcmd" ] || [ "${steamcmd_bin}" = "/usr/games/steamcmd" ] || [ "${steamcmd_base}" = "steamcmd.sh" ]; then
+        HOME="${CONTAINER_HOME}" "${steamcmd_bin}" "${args[@]}"
+        return $?
     fi
 
     steamcmd_root="$(cd "$(dirname "${steamcmd_bin}")/.." && pwd)"
+
+    # For linux32/steamcmd we prefer the bundled compat loader if present.
+    if [ ! -x "${STEAM_COMPAT_LOADER}" ]; then
+        log_warn "Steam compatibility loader missing at ${STEAM_COMPAT_LOADER}; attempting direct SteamCMD launch"
+        (
+            cd "${steamcmd_root}"
+            HOME="${CONTAINER_HOME}" \
+            "${steamcmd_bin}" \
+            "${args[@]}"
+        )
+        return $?
+    fi
 
     if [ ! -e "/lib/ld-linux.so.2" ] && [ -f "${STEAM_COMPAT_LOADER}" ]; then
         ln -sf "${STEAM_COMPAT_LOADER}" /lib/ld-linux.so.2 2>/dev/null || true
@@ -329,11 +382,15 @@ update_sbox() {
 # ============================================================================
 
 run_sbox() {
+    local -a cli_args=("$@")
     local -a args=()
     local -a extra=()
     local -a launch_env=()
     local -a redacted_args=()
     local project_target=""
+    local resolved_server_name="${SERVER_NAME}"
+    local cli_has_game_flag=0
+    local cli_arg=""
 
     if [ ! -f "${SBOX_SERVER_EXE}" ]; then
         log_error "${SBOX_SERVER_EXE} was not found. Cannot start S&Box server."
@@ -342,6 +399,13 @@ run_sbox() {
     fi
 
     project_target="$(resolve_project_target)"
+
+    for cli_arg in "${cli_args[@]}"; do
+        if [ "${cli_arg}" = "+game" ]; then
+            cli_has_game_flag=1
+            break
+        fi
+    done
 
     if [ -n "${project_target}" ]; then
         ensure_project_libraries_dir "${project_target}"
@@ -354,13 +418,21 @@ run_sbox() {
         if [ -n "${MAP}" ]; then
             args+=( "${MAP}" )
         fi
+    elif [ "${cli_has_game_flag}" = "1" ]; then
+        :
     else
         log_error "missing startup target; set a project target (SBOX_PROJECT) or provide GAME and MAP (current: GAME='${GAME:-}', MAP='${MAP:-}')"
         exit 1
     fi
 
-    if [ -n "${SERVER_NAME}" ]; then
-        args+=( +hostname "${SERVER_NAME}" )
+    # Backward compatibility: use HOSTNAME only when SERVER_NAME is empty and
+    # HOSTNAME does not look like a container ID.
+    if [ -z "${resolved_server_name}" ] && [ -n "${HOSTNAME_FALLBACK}" ] && [[ ! "${HOSTNAME_FALLBACK}" =~ ^[0-9a-f]{12,64}$ ]]; then
+        resolved_server_name="${HOSTNAME_FALLBACK}"
+    fi
+
+    if [ -n "${resolved_server_name}" ]; then
+        args+=( +hostname "${resolved_server_name}" )
     fi
 
     if [ -n "${TOKEN}" ]; then
@@ -384,6 +456,10 @@ run_sbox() {
     if [ -n "${SBOX_EXTRA_ARGS}" ]; then
         read -ra extra <<< "${SBOX_EXTRA_ARGS}"
         args+=( "${extra[@]}" )
+    fi
+
+    if [ "${#cli_args[@]}" -gt 0 ]; then
+        args+=( "${cli_args[@]}" )
     fi
 
     unset DOTNET_ROOT DOTNET_ROOT_X86 DOTNET_ROOT_X64
@@ -410,7 +486,11 @@ run_sbox() {
         fi
     done
 
-    log_info "Starting S&Box server on IP ${SERVER_IP:-}:${QUERY_PORT} with the following configuration:"
+    if [ "${ENABLE_DIRECT_CONNECT}" = "1" ]; then
+        log_info "Starting S&Box server in direct-connect mode (port=${SERVER_PORT:-27015}, query_port=${QUERY_PORT:-unset})"
+    else
+        log_info "Starting S&Box server in Steam relay mode"
+    fi
     log_info "Command: wine \"${SBOX_SERVER_EXE}\" ${redacted_args[*]}"
 
     cd "${SBOX_INSTALL_DIR}"
@@ -433,13 +513,13 @@ fi
 
 seed_runtime_files
 
-if [ "${1:-}" = "" ]; then
+if [ "${1:-}" = "" ] || [[ "${1}" = +* ]]; then
     if [ "${SBOX_AUTO_UPDATE}" = "1" ] || [ "${SBOX_PREBAKEDSEEDED}" = "1" ] || [ ! -f "${SBOX_SERVER_EXE}" ]; then
         log_info "updating S&Box server files on boot..."
         update_sbox
     fi
     
-    run_sbox
+    run_sbox "$@"
 fi
 
 exec "$@"

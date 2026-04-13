@@ -29,14 +29,14 @@ This avoids runtime compatibility issues caused by carrying a builder-baked Stea
 Run from repository root:
 
 ```bash
-docker build --platform linux/amd64 -f Yolk/DockerFile -t ghcr.io/hyberhost/gameforge-sbox-egg:latest .
+docker build --platform linux/amd64 -f Yolk/Dockerfile -t ghcr.io/hyberhost/gameforge-sbox-egg:latest .
 ```
 
 Optional build args:
 
 ```bash
 docker build --platform linux/amd64 \
-  -f Yolk/DockerFile \
+  -f Yolk/Dockerfile \
   -t ghcr.io/hyberhost/gameforge-sbox-egg:latest \
   --build-arg BAKE_WIN_DOTNET_VERSION=10.0.0 \
   --build-arg BAKE_SBOX_APP_ID=1892930 \
