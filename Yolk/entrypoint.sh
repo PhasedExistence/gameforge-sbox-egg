@@ -12,7 +12,6 @@ SBOX_INSTALL_DIR="${SBOX_INSTALL_DIR:-/home/container/sbox}"
 SBOX_SERVER_EXE="${SBOX_SERVER_EXE:-${SBOX_INSTALL_DIR}/sbox-server.exe}"
 SBOX_APP_ID="${SBOX_APP_ID:-1892930}"
 SBOX_AUTO_UPDATE="${SBOX_AUTO_UPDATE:-1}"
-SBOX_SKIP_UPDATE_AFTER_SEED="${SBOX_SKIP_UPDATE_AFTER_SEED:-1}"
 SBOX_BRANCH="${SBOX_BRANCH:-}"
 
 # Optional server configuration variables
@@ -29,7 +28,6 @@ SBOX_PROJECTS_DIR="${SBOX_PROJECTS_DIR:-${CONTAINER_HOME}/projects}"
 SBOX_EXTRA_ARGS="${SBOX_EXTRA_ARGS:-}"
 
 # Computed variables
-SBOX_PREBAKEDSEEDED=0
 SERVER_PID=""
 
 # Logging
@@ -87,7 +85,6 @@ seed_runtime_files() {
         log_info "seeding S&Box files from ${BAKED_SERVER_TEMPLATE} (${seed_reason})"
         cp -r "${BAKED_SERVER_TEMPLATE}/." "${SBOX_INSTALL_DIR}/"
         if [ -f "${SBOX_SERVER_EXE}" ]; then
-            SBOX_PREBAKEDSEEDED=1
             log_info "prebaked S&Box seed complete (${SBOX_SERVER_EXE})"
         else
             log_warn "prebaked seed copy completed but ${SBOX_SERVER_EXE} is still missing"
@@ -443,9 +440,7 @@ fi
 seed_runtime_files
 
 if [ "${1:-}" = "" ] || [[ "${1}" = +* ]]; then
-    if [ "${SBOX_PREBAKEDSEEDED}" = "1" ] && [ "${SBOX_SKIP_UPDATE_AFTER_SEED}" = "1" ] && [ -f "${SBOX_SERVER_EXE}" ]; then
-        log_info "skipping first-boot update because prebaked seed is present (set SBOX_SKIP_UPDATE_AFTER_SEED=0 to force update)"
-    elif [ "${SBOX_AUTO_UPDATE}" = "1" ] || [ ! -f "${SBOX_SERVER_EXE}" ]; then
+    if [ "${SBOX_AUTO_UPDATE}" = "1" ] || [ ! -f "${SBOX_SERVER_EXE}" ]; then
         log_info "updating S&Box server files on boot..."
         update_sbox
     fi
