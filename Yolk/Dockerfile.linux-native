@@ -1,0 +1,41 @@
+# Experimental Linux-native S&Box egg runtime image.
+# This image intentionally does NOT include Wine.
+# It expects a Linux dedicated server build to be available via SteamCMD
+# for app 1892930 (or an override set by SBOX_APP_ID).
+
+FROM steamcmd/steamcmd:alpine
+
+LABEL author="team@gameforge.gg" maintainer="team@gameforge.gg"
+LABEL description="s&box Linux-native Pterodactyl Egg (experimental)" version="0.2" license="MIT"
+LABEL org.opencontainers.image.description="Experimental Linux-native s&box dedicated server runtime"
+
+ENV CONTAINER_HOME=/home/container \
+    HOME=/home/container \
+    SBOX_APP_ID=1892930 \
+    SBOX_INSTALL_DIR=/home/container/sbox \
+    SBOX_SERVER_EXE=/home/container/sbox/sbox-server \
+    SBOX_AUTO_UPDATE=1 \
+    SBOX_BRANCH= \
+    SBOX_STEAM_PLATFORM=linux \
+    GAME= \
+    MAP= \
+    SERVER_NAME= \
+    SBOX_PROJECT= \
+    SBOX_EXTRA_ARGS=
+
+RUN apk add --no-cache \
+        bash \
+        ca-certificates \
+        tini
+
+RUN mkdir -p \
+    /home/container/logs \
+    /home/container/projects \
+    /home/container/sbox
+
+COPY Yolk/entrypoint-linux.sh /usr/local/bin/entrypoint-linux.sh
+RUN chmod 0755 /usr/local/bin/entrypoint-linux.sh
+
+WORKDIR ${CONTAINER_HOME}
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/entrypoint-linux.sh"]
+CMD ["start-sbox"]

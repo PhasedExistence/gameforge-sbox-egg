@@ -78,6 +78,17 @@ Project selection precedence:
 3. Create a server and configure variables.
 4. Start the server. On first boot it will seed files and run the updater before launching.
 
+
+## Linux-Native Experimental Variant
+
+This repository now includes an **experimental** Linux-native reference variant for teams trying to remove Wine and run a native Linux `sbox-server` binary:
+
+- `sandbox-pterodactyl-linux-native.json` — Pterodactyl egg export for native Linux testing.
+- `Yolk/Dockerfile.linux-native` — runtime image based on `steamcmd/steamcmd:alpine` with `@sSteamCmdForcePlatformType linux`.
+- `Yolk/entrypoint-linux.sh` — startup/update script that launches `/home/container/sbox/sbox-server` directly.
+
+> Important: this is a reference baseline only. Availability of a usable Linux dedicated depot for app `1892930` depends on upstream s&box changes (including Facepunch PR #10377 and related runtime/build requirements).
+
 ## Notes
 
 - Tuned for `linux/amd64` container runtime.
