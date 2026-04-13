@@ -15,7 +15,7 @@
     "startup": "start-sbox",
     "config": {
         "files": "{}",
-        "startup": "{\r\n    \"done\": \"Loading game|Server started\"\r\n}",
+        "startup": "{\r\n    \"done\": \"Load Complete|Loading game|Server started\"\r\n}",
         "logs": "{\r\n    \"custom\": true,\r\n    \"location\": \"logs/*.log\"\r\n}",
         "stop": "^C"
     },
@@ -99,11 +99,11 @@
         },
         {
             "name": "Query Port",
-            "description": "Server query port for Direct Connect. (Experimental)",
+            "description": "Server query port for Direct Connect and Steam discovery where supported.",
             "env_variable": "QUERY_PORT",
-            "default_value": "",
-            "user_viewable": false,
-            "user_editable": false,
+            "default_value": "27016",
+            "user_viewable": true,
+            "user_editable": true,
             "rules": "nullable|numeric|between:1024,65535"
         },
         {

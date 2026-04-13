@@ -8,6 +8,10 @@ SBOX_APP_ID="${SBOX_APP_ID:-1892930}"
 SBOX_AUTO_UPDATE="${SBOX_AUTO_UPDATE:-1}"
 SBOX_BRANCH="${SBOX_BRANCH:-}"
 SBOX_STEAM_PLATFORM="${SBOX_STEAM_PLATFORM:-linux}"
+DOTNET_ROOT="${DOTNET_ROOT:-${CONTAINER_HOME}/.dotnet}"
+TERM="${TERM:-xterm}"
+COLUMNS="${COLUMNS:-80}"
+LINES="${LINES:-24}"
 
 GAME="${GAME:-}"
 MAP="${MAP:-}"
@@ -98,8 +102,20 @@ run_sbox() {
     local -a cli_args=("$@")
     local -a args=()
     local -a extra=()
+    local -a redacted_args=()
     local project_target=""
     local resolved_server_name="${SERVER_NAME}"
+    local cli_has_game_flag=0
+    local cli_arg=""
+    local runtime_lib_dir="${SBOX_INSTALL_DIR}/bin/linuxsteamrt64"
+    local ld_library_path_value=""
+
+    for cli_arg in "${cli_args[@]}"; do
+        if [ "${cli_arg}" = "+game" ]; then
+            cli_has_game_flag=1
+            break
+        fi
+    done
 
     if [ -n "${SBOX_PROJECT}" ]; then
         project_target="${SBOX_PROJECT}"
@@ -118,6 +134,11 @@ run_sbox() {
     elif [ -n "${GAME}" ]; then
         args+=( +game "${GAME}" )
         [ -n "${MAP}" ] && args+=( "${MAP}" )
+    elif [ "${cli_has_game_flag}" = "1" ]; then
+        :
+    else
+        log_error "missing startup target; set SBOX_PROJECT, GAME, or provide +game in startup args"
+        exit 1
     fi
 
     if [ -z "${resolved_server_name}" ] && [ -n "${HOSTNAME_FALLBACK}" ] && [[ ! "${HOSTNAME_FALLBACK}" =~ ^[0-9a-f]{12,64}$ ]]; then
@@ -153,9 +174,30 @@ run_sbox() {
         exit 1
     fi
 
-    log_info "Command: ${SBOX_SERVER_EXE} ${args[*]}"
+    if [ -d "${runtime_lib_dir}" ]; then
+        ld_library_path_value="${runtime_lib_dir}:${SBOX_INSTALL_DIR}:${DOTNET_ROOT}:${LD_LIBRARY_PATH:-}"
+    else
+        ld_library_path_value="${SBOX_INSTALL_DIR}:${DOTNET_ROOT}:${LD_LIBRARY_PATH:-}"
+    fi
+
+    redacted_args=("${args[@]}")
+    if [ -n "${TOKEN}" ]; then
+        local i=0
+        while [ $i -lt ${#redacted_args[@]} ]; do
+            if [ "${redacted_args[$i]}" = "+net_game_server_token" ] && [ $((i + 1)) -lt ${#redacted_args[@]} ]; then
+                redacted_args[$((i + 1))]="[REDACTED]"
+            fi
+            i=$((i + 1))
+        done
+    fi
+
+    log_info "Command: ${SBOX_SERVER_EXE} ${redacted_args[*]}"
     cd "${SBOX_INSTALL_DIR}"
-    exec "${SBOX_SERVER_EXE}" "${args[@]}"
+    stty cols "${COLUMNS}" rows "${LINES}" 2>/dev/null || true
+    export DOTNET_ROOT PATH TERM COLUMNS LINES
+    export PATH="${PATH}:${DOTNET_ROOT}"
+    export LD_LIBRARY_PATH="${ld_library_path_value}"
+    exec "${SBOX_SERVER_EXE}" "${args[@]}" 2>&1 | tr '\r' '\n'
 }
 
 if [ "${1:-}" = "start-sbox" ]; then
