@@ -1,6 +1,6 @@
 # Validated alternative Pterodactyl eggs
 
-These imports are additive alternatives to GameForge's existing Wine/Pelican pair. They use the runtime images maintained by Sacred Servers and the reproducible validation work in [`Dopamine-Sbox/Dedicated-Server-Benchmarks`](https://github.com/Dopamine-Sbox/Dedicated-Server-Benchmarks/tree/feat/local-sbox-runtime-recovery).
+These imports are additive alternatives to GameForge's existing Wine/Pelican pair. They use the runtime images maintained by Sacred Servers and the reproducible validation work in [`Dopamine-Sbox/Dedicated-Server-Benchmarks`](https://github.com/Dopamine-Sbox/Dedicated-Server-Benchmarks).
 
 ## Imports
 
